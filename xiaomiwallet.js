@@ -1,4 +1,5 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
+// Build: 2026-08-15
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
 // 注意：所有请求 node=DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）
