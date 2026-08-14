@@ -6,6 +6,7 @@
 #!system_version = 15
 #!loon_version = 3.0.0(733)
 #!tag = 小米,签到,任务
+#!version = 1.1.0
 #!type = normal
 
 [Argument]
