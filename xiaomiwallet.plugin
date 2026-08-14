@@ -16,5 +16,5 @@ browse_seconds = input,"30",tag=等待秒数,desc=auto 模式广告等待时长�
 cron_time = input,"30 8 * * *",tag=每日执行时间,desc=标准 cron 格式（分 时 日 月 周）；修改后需重载插件生效
 
 [Script]
-cron {cron_time} script-path=xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包每日任务,enable=true
-generic script-path=xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包手动提交,enable=true
+cron {cron_time} script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包每日任务,enable=true
+generic script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包手动提交,enable=true
