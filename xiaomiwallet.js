@@ -647,7 +647,7 @@ function getAccounts() {
       // manual 模式的观看提醒已在 runAccount 中逐账号发送，这里不再重复通知
       $done();
     } else {
-      $notification.post('小米钱包每日任务', '执行完成', reports.join('\n\n'));
+      $notification.post('小米钱包每日任务', '执行完成（' + accounts.length + ' 个账号）', reports.join('\n\n'));
       $done();
     }
   } catch (e) {
