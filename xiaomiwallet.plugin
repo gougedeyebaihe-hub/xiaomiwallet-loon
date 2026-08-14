@@ -1,0 +1,20 @@
+#!name = 小米钱包每日任务
+#!desc = 小米钱包「看视频得会员」每日任务自动完成（移植自 xiaomiwallet-auto；接口含风控，请用小号测试）
+#!author = Loon 移植版
+#!homepage = https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto
+#!system = iOS
+#!system_version = 15
+#!loon_version = 3.0.0(733)
+#!tag = 小米,签到,任务
+#!type = normal
+
+[Argument]
+pass_token = input,"",tag=账号passToken,desc=小米账号长期凭证，由原项目 login.py 扫码获取；多账号用 | 分隔
+user_id = input,"",tag=账号userId,desc=与 passToken 一一对应；多账号用 | 分隔
+watch_mode = select,"auto","manual",tag=观看模式,desc=auto=脚本自动等待广告时长后提交；manual=发通知提醒，看完后在 Loon 通用脚本中手动触发提交
+browse_seconds = input,"30",tag=等待秒数,desc=auto 模式广告等待时长（5-120 秒）
+cron_time = input,"30 8 * * *",tag=每日执行时间,desc=标准 cron 格式（分 时 日 月 周）；修改后需重载插件生效
+
+[Script]
+cron {cron_time} script-path=xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包每日任务,enable=true
+generic script-path=xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包手动提交,enable=true
