@@ -471,7 +471,7 @@ async function runAccount(us, userId, passToken, accountIndex, watchMode, browse
       $notification.post(
         '小米钱包每日任务',
         '请打开小米钱包观看视频任务广告',
-        '看完后返回 Loon，在「通用脚本」中手动触发一次即可提交（账号：' + us + '）'
+        '看完后返回 Loon 手动触发一次「小米钱包手动提交」（账号：' + us + '）'
       );
       log('manual 模式：已发提醒并保存待提交状态，等待手动触发');
       info.manualReminder = true;
