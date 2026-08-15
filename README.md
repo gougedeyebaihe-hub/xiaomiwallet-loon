@@ -53,6 +53,7 @@ user_id = 10001|10002
 | `user_id` | 空 | 账号 ID，与 pass_token 一一对应 |
 | `watch_mode` | auto | `auto`：脚本自动等待广告时长后提交；`manual`：发通知提醒，看完后手动触发提交 |
 | `browse_seconds` | 30 | auto 模式广告等待时长（5-120 秒），实际等待在 ±10 秒内随机 |
+| `node` | `DIRECT` | 任务/登录请求使用的节点或策略组名。默认 `DIRECT` 直连（风控更安全）；想走代理时填策略组名（如 `节点选择`），之后在 Loon 里切换该策略组即可控制直连/代理，无需改脚本 |
 | `cron_time` | `30 8 * * *` | 每日执行时间（cron 格式），改后需重载插件 |
 
 ## 使用方式
@@ -81,13 +82,13 @@ user_id = 10001|10002
 - 接口全部请求 `m.jr.airstarfinance.net`（活动 `2211-videoWelfare`）：`getTaskList`(POST) / `getTask` / `completeTask` / `luckDraw` / `queryUserGoldRichSum` / `queryUserJoinList`
 - 每次运行用 `passToken` + `userId` 访问 `account.xiaomi.com/pass/serviceLogin` 逐跳跟随 302，换取 `cUserId` + `jrairstar_serviceToken` 会话 Cookie
 - 每个账号持久化一套固定设备参数（oaid/imei/androidId/regId 随机生成，device/model 固定 M2012K11AC，`jrairstar_ph` 固定值），重启后不变，避免多账号共用设备指纹
-- 所有请求**强制 `node=DIRECT` 直连**：原版 README 明确警告服务器/机房 IP 会被风控，DIRECT 走手机自身网络，相当于本地运行
+- 所有请求默认 **`node=DIRECT` 直连**（可在插件参数 `node` 中改为策略组名）：原版 README 明确警告服务器/机房 IP 会被风控，DIRECT 走手机自身网络，相当于本地运行
 - 任务接口使用小米钱包移动端 UA，登录使用桌面 UA
 
 ## 风险与限制
 
 - **接口有风控，可能封号**（原版 README 原话：`code 110005` 或直接封号，本质是小米新增服务端风控）。请务必先用小号测试，不要拿主账号跑
-- 脚本在 iOS 上运行，出站 IP 为手机当前网络（WiFi/流量）的 IP；请勿给脚本配置代理节点（已强制 DIRECT，无需操作）
+- 默认 `node=DIRECT` 直连（出站 IP 为手机当前网络 IP，相当于本地运行）。**若手动把 `node` 改为策略组走代理，出站 IP 变为节点 IP，被风控识别为机房/异常 IP 的风险自负**
 - 若接口风控升级导致失效（`110005` 等），需要按原项目 [CAPTURE_GUIDE.md](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto/blob/main/CAPTURE_GUIDE.md) 抓包更新脚本中的接口参数
 - `passToken` 过期后任务会失败（通知提示），需重新执行原项目 login.py 更新参数
 - manual 模式为「通知提醒 + 手动触发」两段式，与原版终端回车体验不同

@@ -33,6 +33,9 @@ const PENDING_KEY = 'xiaomiwallet_pending'; // manual 模式"待提交"状态
 const DEV_KEY_PREFIX = 'xiaomiwallet_dev_'; // 每账号固定设备参数
 const PENDING_TTL = 12 * 3600 * 1000; // 待提交状态 12 小时内有效
 
+// 请求节点：默认 DIRECT 直连（风控更安全）；可在插件参数 node 中改为策略组名/节点名走代理
+let REQUEST_NODE = 'DIRECT';
+
 // ==================== 工具函数 ====================
 
 function log(msg) {
@@ -84,13 +87,13 @@ function request(method, params) {
   });
 }
 
-// 任务接口请求：移动端 UA + Host + Cookie + 强制直连
+// 任务接口请求：移动端 UA + Host + Cookie + 指定节点（默认 DIRECT）
 function apiRequest(method, url, params, cookie) {
   const opts = {
     url: url,
     headers: { 'Host': API_HOST, 'User-Agent': UA_MOBILE, 'Cookie': cookie },
     timeout: 15000,
-    node: 'DIRECT'
+    node: REQUEST_NODE
   };
   if (params) opts.url = url + '?' + buildQuery(params);
   return request(method, opts);
@@ -192,7 +195,7 @@ async function getSessionCookies(passToken, userId) {
       url: url,
       headers: headers,
       timeout: 15000,
-      node: 'DIRECT',
+      node: REQUEST_NODE,
       'auto-redirect': false
     });
     if (r.error) {
@@ -312,7 +315,7 @@ async function getTaskList(cookie) {
     },
     body: 'activityCode=' + ACTIVITY_CODE,
     timeout: 15000,
-    node: 'DIRECT'
+    node: REQUEST_NODE
   });
   const json = parseJson(r.data);
   if (r.error || !json || json.code !== 0) {
@@ -613,6 +616,7 @@ function getAccounts() {
 (async function () {
   try {
     const arg = $argument || {};
+    REQUEST_NODE = String(arg.node || '').trim() || 'DIRECT';
     const watchMode = arg.watch_mode === 'manual' ? 'manual' : 'auto';
     const browseSeconds = Math.max(5, Math.min(120, parseInt(arg.browse_seconds, 10) || 30));
 
