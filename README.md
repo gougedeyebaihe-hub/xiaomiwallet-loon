@@ -2,7 +2,7 @@
 
 将 [xiaomiwallet-auto](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto)（小米钱包「看视频得会员」每日任务）移植为 Loon 插件。核心逻辑与 Python 原版完全一致（`main.py` / `gui.py` 中的接口 URL、请求参数、设备参数、任务流程均照抄），仅将运行环境从 Python/Flet 换为 Loon 的脚本环境。
 
-**当前版本：1.4.1**
+**当前版本：1.4.2**
 
 ## 文件说明
 
@@ -63,7 +63,14 @@ user_id = 10001|10002
 
 ### PROXY 策略组
 
-插件自带 `PROXY` 策略组（`PROXY = select,Auto,DIRECT,节点选择`），安装后在 Loon 的策略组页面可以看到并切换它的选择（成员引用主配置的策略组/内置 DIRECT）。脚本请求默认 `DIRECT` 直连（风控最安全）；**从 `PROXY` 策略组入口触发「小米钱包手动提交」时，本次任务自动使用 PROXY 的当前选择**（官方 generic 机制）。
+Loon 插件**不支持定义策略组**（官方插件模块只有 General/Rule/Rewrite/Host/Script/Mitm），`PROXY` 策略组需在你的**主配置** `[Proxy Group]` 中定义（官方示例 example.conf 原样写法，按你的节点修改）：
+
+```ini
+[Proxy Group]
+PROXY = select,Auto,1,2,3,4,Subs
+```
+
+脚本请求默认 `DIRECT` 直连（风控最安全）；**从 `PROXY` 策略组入口触发「小米钱包手动提交」时，本次任务自动使用 PROXY 的当前选择**（官方 generic 机制）。
 
 ### 查看已接入的账号
 
