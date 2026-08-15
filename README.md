@@ -2,7 +2,7 @@
 
 将 [xiaomiwallet-auto](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto)（小米钱包「看视频得会员」每日任务）移植为 Loon 插件。核心逻辑与 Python 原版完全一致（`main.py` / `gui.py` 中的接口 URL、请求参数、设备参数、任务流程均照抄），仅将运行环境从 Python/Flet 换为 Loon 的脚本环境。
 
-**当前版本：1.4.2**
+**当前版本：1.5.0**
 
 ## 文件说明
 
@@ -61,16 +61,14 @@ user_id = 10001|10002
 
 每天到点后脚本自动执行：登录换 Cookie → 查询任务 → 等待广告时长 → 提交任务 → 领取奖励，最后推送结果通知（通知副标题会显示本次执行的账号数）。也可以随时手动触发 `小米钱包手动提交` 立即执行一次（用于测试）。
 
-### PROXY 策略组
+### 代理指向的策略
 
-Loon 插件**不支持定义策略组**（官方插件模块只有 General/Rule/Rewrite/Host/Script/Mitm），`PROXY` 策略组需在你的**主配置** `[Proxy Group]` 中定义（官方示例 example.conf 原样写法，按你的节点修改）：
+插件 `[Rule]` 中使用 `PROXY` 策略，Loon 会在**插件详情页显示「代理指向的策略」块**：点击框（默认 `PROXY`）跳转到策略选择页，可把 PROXY 映射到策略组或内置策略（直连 / 节点 / Auto 等）。
 
-```ini
-[Proxy Group]
-PROXY = select,Auto,1,2,3,4,Subs
-```
-
-脚本请求默认 `DIRECT` 直连（风控最安全）；**从 `PROXY` 策略组入口触发「小米钱包手动提交」时，本次任务自动使用 PROXY 的当前选择**（官方 generic 机制）。
+- 脚本每次运行时读取该映射（`$config.getConfig()` 的 `policy_select`），**任务请求自动跟随你选择的策略**——想直连选 DIRECT，想走代理选节点，无需改插件
+- 优先级：从节点/策略组入口触发脚本（官方 generic 机制）> 代理指向的策略 > 默认 `DIRECT` 直连
+- 规则用的是保留域名（`xiaomiwallet-task.invalid`），不会产生真实流量
+- 风控提醒：走代理时出站 IP 为节点 IP，可能被小米风控识别为机房/异常 IP，建议小号验证
 
 ### 查看已接入的账号
 

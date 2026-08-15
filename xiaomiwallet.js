@@ -1,6 +1,6 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.4.2：插件不支持 [Proxy Group]（官方示例确认），PROXY 策略组需在主配置定义（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
+// 版本 1.5.0：插件详情页「代理指向的策略」块（[Rule] PROXY + policy_select 读取）（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
 // 注意：请求默认 DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）
@@ -619,7 +619,6 @@ function getAccounts() {
     const arg = $argument || {};
     // 官方机制：generic 脚本从节点/策略组触发时，$environment.params.node 自动带入策略名
     // （见官方示例 generic_example.js：$environment.params.node -> $httpClient node）
-    // cron 自动执行无触发上下文，默认 DIRECT 直连
     let contextNode = null;
     if (
       typeof $environment !== 'undefined' &&
@@ -629,8 +628,18 @@ function getAccounts() {
     ) {
       contextNode = $environment.params.node;
     }
-    REQUEST_NODE = contextNode || 'DIRECT';
-    log('请求策略: ' + REQUEST_NODE);
+    // 「代理指向的策略」：插件 [Rule] 中 PROXY 规则的当前映射（Loon 详情页选择，见 $config.getConfig() 的 policy_select）
+    let proxyTarget = null;
+    try {
+      const cfg = JSON.parse($config.getConfig());
+      const ps = (cfg && cfg.policy_select) || {};
+      if (ps['PROXY']) proxyTarget = ps['PROXY'];
+    } catch (e) {
+      log('读取策略配置失败: ' + (e && e.message ? e.message : e));
+    }
+    // 优先级：触发上下文 > 代理指向的策略 > 默认 DIRECT
+    REQUEST_NODE = contextNode || proxyTarget || 'DIRECT';
+    log('请求策略: ' + REQUEST_NODE + (contextNode ? '（触发上下文）' : proxyTarget ? '（代理指向）' : '（默认直连）'));
     const watchMode = arg.watch_mode === 'manual' ? 'manual' : 'auto';
     const browseSeconds = Math.max(5, Math.min(120, parseInt(arg.browse_seconds, 10) || 30));
 
