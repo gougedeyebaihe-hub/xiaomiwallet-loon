@@ -1,9 +1,9 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.3.1：status 显示请求策略，日志打印当前策略，README 修正（主配置 [Proxy Group] 定义落点，切换即控制直连/代理）
+// 版本 1.3.2：修复 manual 多账号 pending 覆盖，完整报告进日志，日志打印当前策略，README 修正（主配置 [Proxy Group] 定义落点，切换即控制直连/代理）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
-// 注意：所有请求 node=DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）
+// 注意：请求策略默认 PROXY（插件参数 node 可改为 DIRECT 直连；原项目明确警告服务器/机房 IP 会被风控）
 
 // ==================== 常量（照抄 main.py） ====================
 
@@ -34,8 +34,8 @@ const PENDING_KEY = 'xiaomiwallet_pending'; // manual 模式"待提交"状态
 const DEV_KEY_PREFIX = 'xiaomiwallet_dev_'; // 每账号固定设备参数
 const PENDING_TTL = 12 * 3600 * 1000; // 待提交状态 12 小时内有效
 
-// 请求节点：默认 DIRECT 直连（风控更安全）；可在插件参数 node 中改为策略组名/节点名走代理
-let REQUEST_NODE = 'DIRECT';
+// 请求策略：默认 PROXY（代理指向的策略，主配置 [Proxy Group] 定义落点）；可在插件参数 node 中改为 DIRECT 直连或具体策略组名
+let REQUEST_NODE = 'PROXY';
 
 // ==================== 工具函数 ====================
 
@@ -656,17 +656,20 @@ function getAccounts() {
       const acc = accounts[i];
       const info = await runAccount(acc.us, acc.userId, acc.passToken, acc.index, watchMode, browseSeconds);
       if (info.manualReminder) {
+        // manual 模式一次只提醒一个账号（pending 是全局单值，多账号同时提醒会互相覆盖导致漏任务）
         anyReminder = true;
-      } else {
-        reports.push(buildReport(acc.us, acc.userId, info));
+        break;
       }
+      reports.push(buildReport(acc.us, acc.userId, info));
       if (i < accounts.length - 1) await sleep(randInt(0, 15000)); // 随机延迟，避免集中请求
     }
     if (anyReminder) {
       // manual 模式的观看提醒已在 runAccount 中逐账号发送，这里不再重复通知
       $done();
     } else {
-      $notification.post('小米钱包每日任务', '执行完成（' + accounts.length + ' 个账号）', reports.join('\n\n'));
+      const fullReport = reports.join('\n\n');
+      log('执行完成，完整报告：\n' + fullReport); // 通知有字数限制，日志保留完整内容
+      $notification.post('小米钱包每日任务', '执行完成（' + accounts.length + ' 个账号）', fullReport);
       $done();
     }
   } catch (e) {
