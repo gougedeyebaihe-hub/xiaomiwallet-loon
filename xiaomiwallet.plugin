@@ -2,11 +2,11 @@
 #!desc = 小米钱包「看视频得会员」每日任务自动完成（移植自 xiaomiwallet-auto；接口含风控，请用小号测试）
 #!author = Loon 移植版
 #!homepage = https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto
-#!system = iOS
+#!system = iOS,iPadOS,tvOS,macOS
 #!system_version = 15
 #!loon_version = 3.0.0(733)
 #!tag = 小米,签到,任务
-#!version = 1.5.0
+#!version = 1.5.1
 #!date = 2026-08-15
 #!type = normal
 

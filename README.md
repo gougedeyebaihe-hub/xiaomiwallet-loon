@@ -2,7 +2,7 @@
 
 将 [xiaomiwallet-auto](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto)（小米钱包「看视频得会员」每日任务）移植为 Loon 插件。核心逻辑与 Python 原版完全一致（`main.py` / `gui.py` 中的接口 URL、请求参数、设备参数、任务流程均照抄），仅将运行环境从 Python/Flet 换为 Loon 的脚本环境。
 
-**当前版本：1.5.0**
+**当前版本：1.5.1**
 
 ## 文件说明
 
