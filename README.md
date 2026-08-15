@@ -2,7 +2,7 @@
 
 将 [xiaomiwallet-auto](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto)（小米钱包「看视频得会员」每日任务）移植为 Loon 插件。核心逻辑与 Python 原版完全一致（`main.py` / `gui.py` 中的接口 URL、请求参数、设备参数、任务流程均照抄），仅将运行环境从 Python/Flet 换为 Loon 的脚本环境。
 
-**当前版本：1.3.0**
+**当前版本：1.3.1**
 
 ## 文件说明
 
@@ -88,14 +88,14 @@ PROXY = select,Auto,直连,香港,日本
 3. 返回 Loon，手动触发 `小米钱包手动提交`，脚本提交任务并领奖
 4. 若当天还有第二轮浏览任务，会再次提醒，重复 2-3 步
 
-**节点选择**：如果从 Loon 的节点/策略组入口触发该脚本（官方 generic 机制，见 [generic_example.js](https://github.com/Loon0x00/LoonExampleConfig/blob/master/Script/generic_example.js)），本次任务请求自动使用被点击的策略组；从普通脚本入口触发则用参数 `node`（默认 DIRECT）。
+**节点选择**：如果从 Loon 的节点/策略组入口触发该脚本（官方 generic 机制，见 [generic_example.js](https://github.com/Loon0x00/LoonExampleConfig/blob/master/Script/generic_example.js)），本次任务请求自动使用被点击的策略组；从普通脚本入口触发则用参数 `node`（默认 `PROXY`，见上文"代理指向的策略"）。
 
 ## 实现细节（与原版一致）
 
 - 接口全部请求 `m.jr.airstarfinance.net`（活动 `2211-videoWelfare`）：`getTaskList`(POST) / `getTask` / `completeTask` / `luckDraw` / `queryUserGoldRichSum` / `queryUserJoinList`
 - 每次运行用 `passToken` + `userId` 访问 `account.xiaomi.com/pass/serviceLogin` 逐跳跟随 302，换取 `cUserId` + `jrairstar_serviceToken` 会话 Cookie
 - 每个账号持久化一套固定设备参数（oaid/imei/androidId/regId 随机生成，device/model 固定 M2012K11AC，`jrairstar_ph` 固定值），重启后不变，避免多账号共用设备指纹
-- 所有请求默认 **`node=DIRECT` 直连**（可在插件参数 `node` 中改为策略组名）：原版 README 明确警告服务器/机房 IP 会被风控，DIRECT 走手机自身网络，相当于本地运行
+- 所有请求默认 **`node=PROXY`**（代理指向的策略，可在插件参数 `node` 中改为 `DIRECT` 直连或具体策略组名）：PROXY 策略组在主配置 `[Proxy Group]` 定义，切换其选择即可控制直连/代理。原版 README 明确警告服务器/机房 IP 会被风控，DIRECT 走手机自身网络，相当于本地运行
 - 任务接口使用小米钱包移动端 UA，登录使用桌面 UA
 
 ## 风险与限制

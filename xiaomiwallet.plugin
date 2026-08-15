@@ -6,7 +6,7 @@
 #!system_version = 15
 #!loon_version = 3.0.0(733)
 #!tag = 小米,签到,任务
-#!version = 1.3.0
+#!version = 1.3.1
 #!type = normal
 
 [Argument]
@@ -20,4 +20,4 @@ cron_time = input,"30 8 * * *",tag=每日执行时间,desc=标准 cron 格式（
 [Script]
 cron {cron_time} script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds},{node}],tag=小米钱包每日任务,enable=true
 generic script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds},{node}],tag=小米钱包手动提交,enable=true
-generic script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet_status.js,timeout=60,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包账号状态,enable=true
+generic script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet_status.js,timeout=60,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds},{node}],tag=小米钱包账号状态,enable=true
