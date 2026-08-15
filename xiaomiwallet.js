@@ -1,6 +1,6 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.2.0：请求节点支持插件参数 node 与 generic 触发上下文（$environment.params.node）
+// 版本 1.3.0：请求策略默认 PROXY（主配置 [Proxy Group] 定义落点，切换即控制直连/代理）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
 // 注意：所有请求 node=DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）

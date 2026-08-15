@@ -6,7 +6,7 @@
 #!system_version = 15
 #!loon_version = 3.0.0(733)
 #!tag = 小米,签到,任务
-#!version = 1.2.0
+#!version = 1.3.0
 #!type = normal
 
 [Argument]
@@ -14,7 +14,7 @@ pass_token = input,"",tag=账号passToken,desc=小米账号长期凭证，由原
 user_id = input,"",tag=账号userId,desc=与 passToken 一一对应；多账号用 | 分隔
 watch_mode = select,"auto","manual",tag=观看模式,desc=auto=脚本自动等待广告时长后提交；manual=发通知提醒，看完后在 Loon 内手动触发「小米钱包手动提交」
 browse_seconds = input,"30",tag=等待秒数,desc=auto 模式广告等待时长（5-120 秒）
-node = input,"DIRECT",tag=请求节点,desc=任务/登录请求使用的节点或策略组名；默认 DIRECT 直连（风控更安全），想走代理时填策略组名（如 节点选择）
+node = input,"PROXY",tag=代理指向的策略,desc=请求使用的策略：默认 PROXY（在主配置 [Proxy Group] 定义 PROXY = select,... 策略组作为落点，在 Loon 里切换它的选择即可控制直连/代理）；也可填 DIRECT 或具体策略组名
 cron_time = input,"30 8 * * *",tag=每日执行时间,desc=标准 cron 格式（分 时 日 月 周）；修改后需重载插件生效
 
 [Script]
