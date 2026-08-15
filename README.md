@@ -1,23 +1,30 @@
 # 小米钱包每日任务（Loon 插件版）
 
-将 [xiaomiwallet-auto](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto)（小米钱包「看视频得会员」每日任务）移植为 Loon 插件。核心逻辑与 Python 原版完全一致（`main.py` / `gui.py` 中的接口 URL、请求参数、设备参数、任务流程均照抄），仅将运行环境从 Python/Flet 换为 Loon 的脚本环境。
+将 [xiaomiwallet-auto](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto)（小米钱包「看视频得会员」每日任务）移植为 Loon 插件。核心逻辑与 Python 原版完全一致（`main.py` / `device.py` 中的接口 URL、请求参数、设备参数、任务流程均照抄），仅将运行环境从 Python/Flet 换为 Loon 的脚本环境。
 
-**当前版本：1.5.1**
+**当前版本：1.5.2**
 
 ## 文件说明
 
 | 文件 | 说明 |
 |---|---|
 | `xiaomiwallet.js` | 核心脚本（cron 定时执行 + generic 手动触发，同一文件按状态分派） |
-| `xiaomiwallet_status.js` | 账号状态查看脚本（generic 手动触发，通知显示已接入账号数量与 ID） |
-| `xiaomiwallet.plugin` | Loon 插件配置（参数 + 脚本声明） |
+| `xiaomiwallet_status.js` | 账号状态查看脚本（generic 手动触发，输出到 Loon 日志，不弹通知） |
+| `xiaomiwallet.plugin` | Loon 插件配置（参数 + 规则 + 脚本声明） |
 
 ## 安装
 
-1. 将 `xiaomiwallet.js` 和 `xiaomiwallet.plugin` 放入同一目录（或传到可访问的 URL）
-2. Loon → 配置 → 插件 → 添加，填入 `xiaomiwallet.plugin` 的本地路径或远程 URL
-3. 在插件参数页填写账号凭证（见下）
-4. 启用插件；`cron_time` 修改后需重新加载插件生效
+**远程安装（推荐）**：Loon → 配置 → 插件 → 添加 → 粘贴插件 URL：
+
+```
+https://cdn.jsdelivr.net/gh/gougedeyebaihe-hub/xiaomiwallet-loon@main/xiaomiwallet.plugin
+```
+
+（若加载到旧版本，改用 commit-SHA 链接：`https://cdn.jsdelivr.net/gh/gougedeyebaihe-hub/xiaomiwallet-loon@<最新提交SHA>/xiaomiwallet.plugin`）
+
+**本地安装**：将 `xiaomiwallet.plugin`、`xiaomiwallet.js`、`xiaomiwallet_status.js` 三个文件传入 iPhone（微信/文件 App），Loon 插件从本地文件导入。注意：插件内脚本路径为远程 URL，本地导入时脚本仍从 `raw.githubusercontent.com` 加载，需保证该地址可达。
+
+装好后在插件参数页填写账号凭证（见下）；`cron_time` 修改后需重新加载插件生效。
 
 ## 获取账号凭证（passToken / userId）
 
@@ -83,20 +90,22 @@ user_id = 10001|10002
 3. 返回 Loon，手动触发 `小米钱包手动提交`，脚本提交任务并领奖
 4. 若当天还有第二轮浏览任务，会再次提醒，重复 2-3 步
 
-**请求策略**：任务请求默认 `DIRECT` 直连（出站 IP 为手机当前网络 IP，相当于本地运行，风控最安全）。如果从 Loon 的节点/策略组入口触发该脚本（官方 generic 机制，见 [generic_example.js](https://github.com/Loon0x00/LoonExampleConfig/blob/master/Script/generic_example.js)），本次任务请求自动使用被点击的策略组。
+**多账号**：manual 模式按账号顺序逐个处理——当前账号全部轮次完成后，会提醒下一个账号，全部完成后自动结束。
+
+**请求策略**（优先级从高到低）：① 从 Loon 的节点/策略组入口触发脚本（官方 generic 机制，自动带入 `$environment.params.node`，见 [generic_example.js](https://github.com/Loon0x00/LoonExampleConfig/blob/master/Script/generic_example.js)）→ 用触发时的策略；② 「代理指向的策略」（插件详情页选择的映射，脚本读取 `policy_select`）→ 跟随选择；③ 默认 `DIRECT` 直连（出站 IP 为手机当前网络 IP，风控最安全）。
 
 ## 实现细节（与原版一致）
 
 - 接口全部请求 `m.jr.airstarfinance.net`（活动 `2211-videoWelfare`）：`getTaskList`(POST) / `getTask` / `completeTask` / `luckDraw` / `queryUserGoldRichSum` / `queryUserJoinList`
 - 每次运行用 `passToken` + `userId` 访问 `account.xiaomi.com/pass/serviceLogin` 逐跳跟随 302，换取 `cUserId` + `jrairstar_serviceToken` 会话 Cookie
 - 每个账号持久化一套固定设备参数（oaid/imei/androidId/regId 随机生成，device/model 固定 M2012K11AC，`jrairstar_ph` 固定值），重启后不变，避免多账号共用设备指纹
-- 所有请求默认 **`DIRECT` 直连**（出站 IP 为手机当前网络 IP，相当于本地运行；从节点/策略组入口触发 generic 时自动跟随被点击的策略）。原版 README 明确警告服务器/机房 IP 会被风控
+- 所有请求策略按优先级：触发上下文（generic 从节点/策略组入口触发）> 「代理指向的策略」（插件详情页选择，`$config.getConfig()` 的 `policy_select` 中 PROXY 映射）> 默认 `DIRECT` 直连。原版 README 明确警告服务器/机房 IP 会被风控
 - 任务接口使用小米钱包移动端 UA，登录使用桌面 UA
 
 ## 风险与限制
 
 - **接口有风控，可能封号**（原版 README 原话：`code 110005` 或直接封号，本质是小米新增服务端风控）。请务必先用小号测试，不要拿主账号跑
-- 默认 `DIRECT` 直连（出站 IP 为手机当前网络 IP，相当于本地运行）。**若从节点/策略组入口触发脚本走代理，出站 IP 变为节点 IP，被风控识别为机房/异常 IP 的风险自负**
+- 默认 `DIRECT` 直连（出站 IP 为手机当前网络 IP，相当于本地运行）。**若在详情页把「代理指向的策略」选为节点，或从节点/策略组入口触发脚本，出站 IP 变为节点 IP，被风控识别为机房/异常 IP 的风险自负**
 - 若接口风控升级导致失效（`110005` 等），需要按原项目 [CAPTURE_GUIDE.md](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto/blob/main/CAPTURE_GUIDE.md) 抓包更新脚本中的接口参数
 - `passToken` 过期后任务会失败（通知提示），需重新执行原项目 login.py 更新参数
 - manual 模式为「通知提醒 + 手动触发」两段式，与原版终端回车体验不同

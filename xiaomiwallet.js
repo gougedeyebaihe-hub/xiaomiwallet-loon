@@ -1,6 +1,6 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.5.0：插件详情页「代理指向的策略」块（[Rule] PROXY + policy_select 读取）（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
+// 版本 1.5.2：审核修复（manual 多账号推进、设备参数按账号 ID、pending 防错账号）（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
 // 注意：请求默认 DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）
@@ -137,9 +137,9 @@ function generateDeviceParams() {
   };
 }
 
-// 每账号一套固定设备参数，持久化后复用
-function ensureDeviceParams(accountIndex) {
-  const key = DEV_KEY_PREFIX + accountIndex;
+// 每账号一套固定设备参数，持久化后复用（key 用账号 ID，调整账号顺序不换指纹）
+function ensureDeviceParams(accountId) {
+  const key = DEV_KEY_PREFIX + accountId;
   const existing = loadJSON(key, null);
   if (existing && existing.oaid && existing.imei && existing.androidId && existing.regId) {
     return existing;
@@ -410,8 +410,9 @@ function buildReport(us, userId, info) {
 
 // ==================== manual 模式状态 ====================
 
-function savePending(accountIndex) {
-  saveJSON(PENDING_KEY, { time: Date.now(), accountIndex: accountIndex });
+// pending 存账号下标 + 账号 ID（重排账号时校验 ID 防止提交到错误账号）
+function savePending(accountIndex, userId) {
+  saveJSON(PENDING_KEY, { time: Date.now(), accountIndex: accountIndex, userId: userId });
 }
 
 function clearPending() {
@@ -431,7 +432,7 @@ function readPending() {
 // ==================== 账号执行 ====================
 
 async function runAccount(us, userId, passToken, accountIndex, watchMode, browseSeconds) {
-  const deviceParams = ensureDeviceParams(accountIndex);
+  const deviceParams = ensureDeviceParams(userId);
   log('开始处理账号 ' + us + ' (ID: ' + userId + ')');
 
   const cookie = await getSessionCookies(passToken, userId);
@@ -472,7 +473,7 @@ async function runAccount(us, userId, passToken, accountIndex, watchMode, browse
 
     if (watchMode === 'manual') {
       // Loon 两段式：先提醒，用户看完后手动触发 generic 提交
-      savePending(accountIndex);
+      savePending(accountIndex, userId);
       $notification.post(
         '小米钱包每日任务',
         '请打开小米钱包观看视频任务广告',
@@ -522,7 +523,13 @@ async function runManualSubmit(accounts, pending, browseSeconds) {
     clearPending();
     return;
   }
-  const deviceParams = ensureDeviceParams(acc.index);
+  // 校验账号 ID 与提醒时一致（防止重排参数后提交到错误账号）
+  if (pending.userId && String(pending.userId) !== String(acc.userId)) {
+    clearPending();
+    $notification.post('小米钱包每日任务', '账号配置已变更', '检测到账号顺序/配置与提醒时不一致，已重置待提交状态，请重新触发');
+    return;
+  }
+  const deviceParams = ensureDeviceParams(acc.userId);
   log('manual 提交：账号 ' + acc.us);
 
   const cookie = await getSessionCookies(acc.passToken, acc.userId);
@@ -573,7 +580,8 @@ async function runManualSubmit(accounts, pending, browseSeconds) {
   const hasNext = nextState && (nextState.periodCompleteCount || 0) < (nextState.periodCount || 0);
 
   if (hasNext) {
-    savePending(acc.index);
+    // 同一账号还有下一轮：继续等待手动触发
+    savePending(acc.index, acc.userId);
     const completedCount = taskState ? taskState.periodCompleteCount || 0 : 0;
     $notification.post(
       '小米钱包每日任务',
@@ -581,12 +589,23 @@ async function runManualSubmit(accounts, pending, browseSeconds) {
       '还有下一轮浏览任务：请再次观看视频后手动触发提交'
     );
   } else {
-    clearPending();
-    $notification.post(
-      '小米钱包每日任务',
-      acc.us,
-      (awardOk ? '本轮已提交并领取奖励' : '本轮已提交，但领取奖励可能失败') + '，今日任务完成'
-    );
+    // 当前账号完成：推进到下一个账号（manual 多账号顺序处理），全部完成则结束
+    const nextIndex = acc.index + 1;
+    if (nextIndex < accounts.length) {
+      savePending(nextIndex, accounts[nextIndex].userId);
+      $notification.post(
+        '小米钱包每日任务',
+        acc.us + ' 已完成',
+        '还有账号 ' + accounts[nextIndex].us + '：请观看视频后手动触发提交（全部账号完成后自动结束）'
+      );
+    } else {
+      clearPending();
+      $notification.post(
+        '小米钱包每日任务',
+        acc.us,
+        (awardOk ? '本轮已提交并领取奖励' : '本轮已提交，但领取奖励可能失败') + '，今日任务完成'
+      );
+    }
   }
 }
 
@@ -656,6 +675,9 @@ function getAccounts() {
       await runManualSubmit(accounts, pending, browseSeconds);
       $done();
       return;
+    }
+    if (watchMode === 'auto') {
+      clearPending(); // auto 模式清理残留的 manual 待提交状态（如从 manual 切换而来）
     }
 
     // 完整流程（auto 模式；manual 模式首次提醒）

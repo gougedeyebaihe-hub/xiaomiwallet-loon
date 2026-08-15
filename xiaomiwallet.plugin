@@ -1,12 +1,12 @@
 #!name = 小米钱包每日任务
 #!desc = 小米钱包「看视频得会员」每日任务自动完成（移植自 xiaomiwallet-auto；接口含风控，请用小号测试）
 #!author = Loon 移植版
-#!homepage = https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto
+#!homepage = https://github.com/gougedeyebaihe-hub/xiaomiwallet-loon
 #!system = iOS,iPadOS,tvOS,macOS
 #!system_version = 15
 #!loon_version = 3.0.0(733)
 #!tag = 小米,签到,任务
-#!version = 1.5.1
+#!version = 1.5.2
 #!date = 2026-08-15
 #!type = normal
 
@@ -23,4 +23,4 @@ DOMAIN,xiaomiwallet-task.invalid,PROXY
 [Script]
 cron {cron_time} script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包每日任务,enable=true
 generic script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包手动提交,enable=true
-generic script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet_status.js,timeout=60,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包账号状态,enable=true
+generic script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet_status.js,timeout=60,argument=[{pass_token},{user_id},{watch_mode}],tag=小米钱包账号状态,enable=true
