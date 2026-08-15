@@ -616,7 +616,19 @@ function getAccounts() {
 (async function () {
   try {
     const arg = $argument || {};
-    REQUEST_NODE = String(arg.node || '').trim() || 'DIRECT';
+    // 官方机制：generic 脚本从节点/策略组触发时，$environment.params.node 自动带入策略名
+    // （见官方示例 generic_example.js：$environment.params.node -> $httpClient node）
+    // 优先级：触发上下文 > 插件参数 node > 默认 DIRECT
+    let contextNode = null;
+    if (
+      typeof $environment !== 'undefined' &&
+      $environment &&
+      $environment.params &&
+      $environment.params.node
+    ) {
+      contextNode = $environment.params.node;
+    }
+    REQUEST_NODE = contextNode || String(arg.node || '').trim() || 'DIRECT';
     const watchMode = arg.watch_mode === 'manual' ? 'manual' : 'auto';
     const browseSeconds = Math.max(5, Math.min(120, parseInt(arg.browse_seconds, 10) || 30));
 
