@@ -6,7 +6,7 @@
 #!system_version = 15
 #!loon_version = 3.0.0(733)
 #!tag = 小米,签到,任务
-#!version = 1.4.0
+#!version = 1.4.1
 #!type = normal
 
 [Argument]
@@ -15,6 +15,9 @@ user_id = input,"",tag=账号userId,desc=与 passToken 一一对应；多账号�
 watch_mode = select,"auto","manual",tag=观看模式,desc=auto=脚本自动等待广告时长后提交；manual=发通知提醒，看完后在 Loon 内手动触发「小米钱包手动提交」
 browse_seconds = input,"30",tag=等待秒数,desc=auto 模式广告等待时长（5-120 秒）
 cron_time = input,"30 8 * * *",tag=每日执行时间,desc=标准 cron 格式（分 时 日 月 周）；修改后需重载插件生效
+
+[Proxy Group]
+PROXY = select,Auto,DIRECT,节点选择
 
 [Script]
 cron {cron_time} script-path=https://raw.githubusercontent.com/gougedeyebaihe-hub/xiaomiwallet-loon/main/xiaomiwallet.js,timeout=1800,argument=[{pass_token},{user_id},{watch_mode},{browse_seconds}],tag=小米钱包每日任务,enable=true
