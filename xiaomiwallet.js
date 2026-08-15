@@ -1,6 +1,6 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.3.2：修复 manual 多账号 pending 覆盖，完整报告进日志，日志打印当前策略，README 修正（主配置 [Proxy Group] 定义落点，切换即控制直连/代理）
+// 版本 1.3.3：node 默认值回退 DIRECT（PROXY 方案待真机验证），日志打印当前策略，README 修正（主配置 [Proxy Group] 定义落点，切换即控制直连/代理）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
 // 注意：请求策略默认 PROXY（插件参数 node 可改为 DIRECT 直连；原项目明确警告服务器/机房 IP 会被风控）

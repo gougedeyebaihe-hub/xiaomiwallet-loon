@@ -2,7 +2,7 @@
 
 将 [xiaomiwallet-auto](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto)（小米钱包「看视频得会员」每日任务）移植为 Loon 插件。核心逻辑与 Python 原版完全一致（`main.py` / `gui.py` 中的接口 URL、请求参数、设备参数、任务流程均照抄），仅将运行环境从 Python/Flet 换为 Loon 的脚本环境。
 
-**当前版本：1.3.2**
+**当前版本：1.3.3**
 
 ## 文件说明
 
@@ -53,7 +53,7 @@ user_id = 10001|10002
 | `user_id` | 空 | 账号 ID，与 pass_token 一一对应 |
 | `watch_mode` | auto | `auto`：脚本自动等待广告时长后提交；`manual`：发通知提醒，看完后手动触发提交 |
 | `browse_seconds` | 30 | auto 模式广告等待时长（5-120 秒），实际等待在 ±10 秒内随机 |
-| `node` | `PROXY` | 请求使用的策略（**代理指向的策略**）。默认 `PROXY`：在主配置 `[Proxy Group]` 里定义名为 `PROXY` 的策略组（如 `PROXY = select,Auto,直连,香港,日本`）作为落点，之后在 Loon 里切换该策略组的选择即可控制任务请求走直连还是代理，无需改插件。也可填 `DIRECT`（直连，风控更安全）或具体策略组名。**优先级**：手动触发时若从 Loon 的节点/策略组入口触发（官方 generic 机制，自动带入 `$environment.params.node`）→ 用触发时的策略 |
+| `node` | `DIRECT` | 请求使用的策略（**代理指向的策略**）。默认 `DIRECT` 直连（风控最安全）；想走代理可填 `PROXY`（需在主配置 `[Proxy Group]` 定义 `PROXY = select,...` 策略组作为落点，切换其选择即控制直连/代理）或具体策略组名。**优先级**：手动触发时若从 Loon 的节点/策略组入口触发（官方 generic 机制，自动带入 `$environment.params.node`）→ 用触发时的策略 |
 | `cron_time` | `30 8 * * *` | 每日执行时间（cron 格式），改后需重载插件 |
 
 ## 使用方式
@@ -64,14 +64,14 @@ user_id = 10001|10002
 
 ### 代理指向的策略（PROXY 落点）
 
-插件默认把任务请求指向 `PROXY` 策略。在主配置的 `[Proxy Group]` 中定义名为 `PROXY` 的策略组作为落点（Loon 官方插件规范：`PROXY` 表示由用户选择策略组）：
+插件默认把任务请求指向 `DIRECT`（直连，风控最安全）。若想走代理，把参数 `node` 填为 `PROXY`，并在主配置的 `[Proxy Group]` 中定义名为 `PROXY` 的策略组作为落点（Loon 官方插件规范：`PROXY` 表示由用户选择策略组）：
 
 ```ini
 [Proxy Group]
 PROXY = select,Auto,直连,香港,日本
 ```
 
-之后在 Loon 里点击 `PROXY` 策略组切换它的选择（直连 / 某节点 / Auto），任务请求自动跟随，**不需要改插件参数**。若不想用 PROXY，把插件参数 `node` 改为 `DIRECT`（直连，风控更安全）或具体策略组名。
+之后在 Loon 里点击 `PROXY` 策略组切换它的选择（直连 / 某节点 / Auto），任务请求自动跟随，**不需要改插件参数**。未定义 `PROXY` 策略组时请求按 Loon 默认逻辑处理，PROXY 方案建议先小号验证在你的环境是否生效。
 
 > 风控提醒：走代理时出站 IP 为节点 IP，可能被小米风控识别为机房/异常 IP；默认建议 `DIRECT` 或家用宽带节点。
 
@@ -88,7 +88,7 @@ PROXY = select,Auto,直连,香港,日本
 3. 返回 Loon，手动触发 `小米钱包手动提交`，脚本提交任务并领奖
 4. 若当天还有第二轮浏览任务，会再次提醒，重复 2-3 步
 
-**节点选择**：如果从 Loon 的节点/策略组入口触发该脚本（官方 generic 机制，见 [generic_example.js](https://github.com/Loon0x00/LoonExampleConfig/blob/master/Script/generic_example.js)），本次任务请求自动使用被点击的策略组；从普通脚本入口触发则用参数 `node`（默认 `PROXY`，见上文"代理指向的策略"）。
+**节点选择**：如果从 Loon 的节点/策略组入口触发该脚本（官方 generic 机制，见 [generic_example.js](https://github.com/Loon0x00/LoonExampleConfig/blob/master/Script/generic_example.js)），本次任务请求自动使用被点击的策略组；从普通脚本入口触发则用参数 `node`（默认 `DIRECT`，见上文"代理指向的策略"）。
 
 ## 实现细节（与原版一致）
 
