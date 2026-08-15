@@ -1,9 +1,9 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.3.3：node 默认值回退 DIRECT（PROXY 方案待真机验证），日志打印当前策略，README 修正（主配置 [Proxy Group] 定义落点，切换即控制直连/代理）
+// 版本 1.4.0：移除插件 node 参数（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
-// 注意：请求策略默认 PROXY（插件参数 node 可改为 DIRECT 直连；原项目明确警告服务器/机房 IP 会被风控）
+// 注意：请求默认 DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）
 
 // ==================== 常量（照抄 main.py） ====================
 
@@ -34,8 +34,8 @@ const PENDING_KEY = 'xiaomiwallet_pending'; // manual 模式"待提交"状态
 const DEV_KEY_PREFIX = 'xiaomiwallet_dev_'; // 每账号固定设备参数
 const PENDING_TTL = 12 * 3600 * 1000; // 待提交状态 12 小时内有效
 
-// 请求策略：默认 PROXY（代理指向的策略，主配置 [Proxy Group] 定义落点）；可在插件参数 node 中改为 DIRECT 直连或具体策略组名
-let REQUEST_NODE = 'PROXY';
+// 请求策略：默认 DIRECT 直连（风控最安全）；从节点/策略组触发 generic 时自动用触发时的策略（官方机制）
+let REQUEST_NODE = 'DIRECT';
 
 // ==================== 工具函数 ====================
 
@@ -619,7 +619,7 @@ function getAccounts() {
     const arg = $argument || {};
     // 官方机制：generic 脚本从节点/策略组触发时，$environment.params.node 自动带入策略名
     // （见官方示例 generic_example.js：$environment.params.node -> $httpClient node）
-    // 优先级：触发上下文 > 插件参数 node > 默认 DIRECT
+    // cron 自动执行无触发上下文，默认 DIRECT 直连
     let contextNode = null;
     if (
       typeof $environment !== 'undefined' &&
@@ -629,7 +629,7 @@ function getAccounts() {
     ) {
       contextNode = $environment.params.node;
     }
-    REQUEST_NODE = contextNode || String(arg.node || '').trim() || 'DIRECT';
+    REQUEST_NODE = contextNode || 'DIRECT';
     log('请求策略: ' + REQUEST_NODE);
     const watchMode = arg.watch_mode === 'manual' ? 'manual' : 'auto';
     const browseSeconds = Math.max(5, Math.min(120, parseInt(arg.browse_seconds, 10) || 30));

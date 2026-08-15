@@ -2,7 +2,7 @@
 
 将 [xiaomiwallet-auto](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto)（小米钱包「看视频得会员」每日任务）移植为 Loon 插件。核心逻辑与 Python 原版完全一致（`main.py` / `gui.py` 中的接口 URL、请求参数、设备参数、任务流程均照抄），仅将运行环境从 Python/Flet 换为 Loon 的脚本环境。
 
-**当前版本：1.3.3**
+**当前版本：1.4.0**
 
 ## 文件说明
 
@@ -53,7 +53,6 @@ user_id = 10001|10002
 | `user_id` | 空 | 账号 ID，与 pass_token 一一对应 |
 | `watch_mode` | auto | `auto`：脚本自动等待广告时长后提交；`manual`：发通知提醒，看完后手动触发提交 |
 | `browse_seconds` | 30 | auto 模式广告等待时长（5-120 秒），实际等待在 ±10 秒内随机 |
-| `node` | `DIRECT` | 请求使用的策略（**代理指向的策略**）。默认 `DIRECT` 直连（风控最安全）；想走代理可填 `PROXY`（需在主配置 `[Proxy Group]` 定义 `PROXY = select,...` 策略组作为落点，切换其选择即控制直连/代理）或具体策略组名。**优先级**：手动触发时若从 Loon 的节点/策略组入口触发（官方 generic 机制，自动带入 `$environment.params.node`）→ 用触发时的策略 |
 | `cron_time` | `30 8 * * *` | 每日执行时间（cron 格式），改后需重载插件 |
 
 ## 使用方式
@@ -61,19 +60,6 @@ user_id = 10001|10002
 ### auto 模式（全自动）
 
 每天到点后脚本自动执行：登录换 Cookie → 查询任务 → 等待广告时长 → 提交任务 → 领取奖励，最后推送结果通知（通知副标题会显示本次执行的账号数）。也可以随时手动触发 `小米钱包手动提交` 立即执行一次（用于测试）。
-
-### 代理指向的策略（PROXY 落点）
-
-插件默认把任务请求指向 `DIRECT`（直连，风控最安全）。若想走代理，把参数 `node` 填为 `PROXY`，并在主配置的 `[Proxy Group]` 中定义名为 `PROXY` 的策略组作为落点（Loon 官方插件规范：`PROXY` 表示由用户选择策略组）：
-
-```ini
-[Proxy Group]
-PROXY = select,Auto,直连,香港,日本
-```
-
-之后在 Loon 里点击 `PROXY` 策略组切换它的选择（直连 / 某节点 / Auto），任务请求自动跟随，**不需要改插件参数**。未定义 `PROXY` 策略组时请求按 Loon 默认逻辑处理，PROXY 方案建议先小号验证在你的环境是否生效。
-
-> 风控提醒：走代理时出站 IP 为节点 IP，可能被小米风控识别为机房/异常 IP；默认建议 `DIRECT` 或家用宽带节点。
 
 ### 查看已接入的账号
 
@@ -88,20 +74,20 @@ PROXY = select,Auto,直连,香港,日本
 3. 返回 Loon，手动触发 `小米钱包手动提交`，脚本提交任务并领奖
 4. 若当天还有第二轮浏览任务，会再次提醒，重复 2-3 步
 
-**节点选择**：如果从 Loon 的节点/策略组入口触发该脚本（官方 generic 机制，见 [generic_example.js](https://github.com/Loon0x00/LoonExampleConfig/blob/master/Script/generic_example.js)），本次任务请求自动使用被点击的策略组；从普通脚本入口触发则用参数 `node`（默认 `DIRECT`，见上文"代理指向的策略"）。
+**请求策略**：任务请求默认 `DIRECT` 直连（出站 IP 为手机当前网络 IP，相当于本地运行，风控最安全）。如果从 Loon 的节点/策略组入口触发该脚本（官方 generic 机制，见 [generic_example.js](https://github.com/Loon0x00/LoonExampleConfig/blob/master/Script/generic_example.js)），本次任务请求自动使用被点击的策略组。
 
 ## 实现细节（与原版一致）
 
 - 接口全部请求 `m.jr.airstarfinance.net`（活动 `2211-videoWelfare`）：`getTaskList`(POST) / `getTask` / `completeTask` / `luckDraw` / `queryUserGoldRichSum` / `queryUserJoinList`
 - 每次运行用 `passToken` + `userId` 访问 `account.xiaomi.com/pass/serviceLogin` 逐跳跟随 302，换取 `cUserId` + `jrairstar_serviceToken` 会话 Cookie
 - 每个账号持久化一套固定设备参数（oaid/imei/androidId/regId 随机生成，device/model 固定 M2012K11AC，`jrairstar_ph` 固定值），重启后不变，避免多账号共用设备指纹
-- 所有请求默认 **`node=PROXY`**（代理指向的策略，可在插件参数 `node` 中改为 `DIRECT` 直连或具体策略组名）：PROXY 策略组在主配置 `[Proxy Group]` 定义，切换其选择即可控制直连/代理。原版 README 明确警告服务器/机房 IP 会被风控，DIRECT 走手机自身网络，相当于本地运行
+- 所有请求默认 **`DIRECT` 直连**（出站 IP 为手机当前网络 IP，相当于本地运行；从节点/策略组入口触发 generic 时自动跟随被点击的策略）。原版 README 明确警告服务器/机房 IP 会被风控
 - 任务接口使用小米钱包移动端 UA，登录使用桌面 UA
 
 ## 风险与限制
 
 - **接口有风控，可能封号**（原版 README 原话：`code 110005` 或直接封号，本质是小米新增服务端风控）。请务必先用小号测试，不要拿主账号跑
-- 默认 `node=DIRECT` 直连（出站 IP 为手机当前网络 IP，相当于本地运行）。**若手动把 `node` 改为策略组走代理，出站 IP 变为节点 IP，被风控识别为机房/异常 IP 的风险自负**
+- 默认 `DIRECT` 直连（出站 IP 为手机当前网络 IP，相当于本地运行）。**若从节点/策略组入口触发脚本走代理，出站 IP 变为节点 IP，被风控识别为机房/异常 IP 的风险自负**
 - 若接口风控升级导致失效（`110005` 等），需要按原项目 [CAPTURE_GUIDE.md](https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto/blob/main/CAPTURE_GUIDE.md) 抓包更新脚本中的接口参数
 - `passToken` 过期后任务会失败（通知提示），需重新执行原项目 login.py 更新参数
 - manual 模式为「通知提醒 + 手动触发」两段式，与原版终端回车体验不同

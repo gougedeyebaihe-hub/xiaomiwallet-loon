@@ -15,7 +15,6 @@ function splitList(s) {
   const tokens = splitList(arg.pass_token);
   const userIds = splitList(arg.user_id);
   const watchMode = arg.watch_mode === 'manual' ? 'manual（手动确认）' : 'auto（自动）';
-  const requestNode = String(arg.node || '').trim() || 'DIRECT';
 
   const line = '=========================';
   let msg;
@@ -33,9 +32,8 @@ function splitList(s) {
     userIds.forEach(function (u, i) {
       msg += (i + 1) + '. 账号' + (i + 1) + '（ID ' + u + '）\n';
     });
-    msg += '观看模式：' + watchMode + '\n';
+    msg += '观看模式：' + watchMode;
   }
-  msg += '请求策略：' + requestNode;
 
   console.log('[小米钱包] 账号状态查询\n' + line + '\n' + msg + '\n' + line);
   $done();
