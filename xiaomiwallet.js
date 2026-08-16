@@ -1,6 +1,6 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.5.3：查询失败时输出详细日志（error/status/body）便于排查（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
+// 版本 1.5.4：禁用 auto-cookie（Cookie 手动管理），登录 Cookie 摘要日志（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
 // 注意：请求默认 DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）
@@ -89,12 +89,14 @@ function request(method, params) {
 }
 
 // 任务接口请求：移动端 UA + Host + Cookie + 指定节点（默认 DIRECT）
+// auto-cookie 显式关闭：Cookie 由脚本手动管理，避免 Loon 自动 Cookie 干扰认证
 function apiRequest(method, url, params, cookie) {
   const opts = {
     url: url,
     headers: { 'Host': API_HOST, 'User-Agent': UA_MOBILE, 'Cookie': cookie },
     timeout: 15000,
-    node: REQUEST_NODE
+    node: REQUEST_NODE,
+    'auto-cookie': false
   };
   if (params) opts.url = url + '?' + buildQuery(params);
   return request(method, opts);
@@ -191,13 +193,15 @@ async function getSessionCookies(passToken, userId) {
     'User-Agent': UA_DESKTOP,
     'Cookie': 'passToken=' + passToken + '; userId=' + userId + ';'
   };
+  let hopCount = 0;
   for (let i = 0; i < 10; i++) {
     const r = await request('get', {
       url: url,
       headers: headers,
       timeout: 15000,
       node: REQUEST_NODE,
-      'auto-redirect': false
+      'auto-redirect': false,
+      'auto-cookie': false
     });
     if (r.error) {
       log('登录请求失败: ' + r.error);
@@ -207,6 +211,7 @@ async function getSessionCookies(passToken, userId) {
     const status = r.response.status;
     const location = (r.response.headers || {})['location'] || (r.response.headers || {})['Location'];
     if (status >= 300 && status < 400 && location) {
+      hopCount++;
       url = resolveUrl(url, location);
       const s = serializeCookies(jar);
       if (s) headers['Cookie'] = s;
@@ -217,6 +222,7 @@ async function getSessionCookies(passToken, userId) {
   const cUserId = jar['cUserId'];
   const serviceToken = jar['serviceToken'] || jar['jrairstar_serviceToken'];
   if (cUserId && serviceToken) {
+    log('会话 Cookie 获取成功: cUserId ' + cUserId.length + ' 位, serviceToken ' + serviceToken.length + ' 位, 共 ' + hopCount + ' 跳');
     return 'cUserId=' + cUserId + '; jrairstar_serviceToken=' + serviceToken;
   }
   log('未获取到完整 Cookie，已拿到: ' + JSON.stringify(Object.keys(jar)));
@@ -332,7 +338,8 @@ async function getTaskList(cookie) {
     },
     body: 'activityCode=' + ACTIVITY_CODE,
     timeout: 15000,
-    node: REQUEST_NODE
+    node: REQUEST_NODE,
+    'auto-cookie': false
   });
   const json = parseJson(r.data);
   if (r.error || !json || json.code !== 0) {
