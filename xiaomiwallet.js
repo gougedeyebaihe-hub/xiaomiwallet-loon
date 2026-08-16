@@ -1,6 +1,6 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.5.5：登录逐跳输出 set-cookie 原文（排查 serviceToken 7 位异常）（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
+// 版本 1.5.6：collectCookies 重写（兼容数组/逗号合并/属性段），登录收集键完整日志（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
 // 注意：请求默认 DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）
@@ -163,6 +163,7 @@ function resolveUrl(base, loc) {
 }
 
 // 从响应头提取需要的 Cookie（逐跳累积）
+// 兼容数组/逗号合并/分号属性等多种 headers 形式：按 "; 名称=" 分割段，每段取名称=值
 function collectCookies(headers, jar) {
   if (!headers) return;
   let raw = headers['set-cookie'] || headers['Set-Cookie'];
@@ -170,9 +171,16 @@ function collectCookies(headers, jar) {
   const items = Array.isArray(raw) ? raw : [raw];
   const names = ['cUserId', 'serviceToken', 'jrairstar_serviceToken'];
   items.forEach(function (item) {
-    names.forEach(function (n) {
-      const m = item.match(new RegExp('(?:^|[;,\\s])' + n + '=([^;,]*)'));
-      if (m) jar[n] = m[1].trim();
+    // 先按 "名称=" 分割出所有 cookie 段（属性段如 Path=/ 会生成 Path 键，忽略即可）
+    const parts = String(item).split(/;\s*(?=[A-Za-z0-9_]+=)/);
+    parts.forEach(function (part) {
+      const eq = part.indexOf('=');
+      if (eq <= 0) return;
+      const name = part.slice(0, eq).trim();
+      const value = part.slice(eq + 1).split(';')[0].split(',')[0].trim();
+      if (names.indexOf(name) >= 0 && value) {
+        jar[name] = value;
+      }
     });
   });
 }
@@ -227,7 +235,7 @@ async function getSessionCookies(passToken, userId) {
   const cUserId = jar['cUserId'];
   const serviceToken = jar['serviceToken'] || jar['jrairstar_serviceToken'];
   if (cUserId && serviceToken) {
-    log('会话 Cookie 获取成功: cUserId ' + cUserId.length + ' 位, serviceToken ' + serviceToken.length + ' 位, 共 ' + hopCount + ' 跳');
+    log('会话 Cookie 获取成功: cUserId ' + cUserId.length + ' 位, serviceToken ' + serviceToken.length + ' 位, 共 ' + hopCount + ' 跳, 收集键: ' + JSON.stringify(Object.keys(jar)));
     return 'cUserId=' + cUserId + '; jrairstar_serviceToken=' + serviceToken;
   }
   log('未获取到完整 Cookie，已拿到: ' + JSON.stringify(Object.keys(jar)));
