@@ -1,6 +1,6 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.5.6：collectCookies 重写（兼容数组/逗号合并/属性段），登录收集键完整日志（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
+// 版本 1.5.7：collectCookies 加正则兜底（逗号合并残留段）（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
 // 注意：请求默认 DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）
@@ -163,15 +163,15 @@ function resolveUrl(base, loc) {
 }
 
 // 从响应头提取需要的 Cookie（逐跳累积）
-// 兼容数组/逗号合并/分号属性等多种 headers 形式：按 "; 名称=" 分割段，每段取名称=值
+// 兼容数组/逗号合并/分号属性等多种 headers 形式：先按 "; 名称=" 分割段提取，漏掉的用正则兜底
 function collectCookies(headers, jar) {
   if (!headers) return;
   let raw = headers['set-cookie'] || headers['Set-Cookie'];
   if (!raw) return;
   const items = Array.isArray(raw) ? raw : [raw];
   const names = ['cUserId', 'serviceToken', 'jrairstar_serviceToken'];
+  // 方式 1：按 "名称=" 分割出所有 cookie 段（属性段如 Path=/ 会生成 Path 键，忽略即可）
   items.forEach(function (item) {
-    // 先按 "名称=" 分割出所有 cookie 段（属性段如 Path=/ 会生成 Path 键，忽略即可）
     const parts = String(item).split(/;\s*(?=[A-Za-z0-9_]+=)/);
     parts.forEach(function (part) {
       const eq = part.indexOf('=');
@@ -181,6 +181,14 @@ function collectCookies(headers, jar) {
       if (names.indexOf(name) >= 0 && value) {
         jar[name] = value;
       }
+    });
+  });
+  // 方式 2：方式 1 漏掉的（如逗号合并残留 "HttpOnly, cUserId=xxx"），正则兜底
+  items.forEach(function (item) {
+    names.forEach(function (n) {
+      if (jar[n]) return;
+      const m = String(item).match(new RegExp('(?:^|[;,\\s])' + n + '=([^;,]*)'));
+      if (m) jar[n] = m[1].trim();
     });
   });
 }
