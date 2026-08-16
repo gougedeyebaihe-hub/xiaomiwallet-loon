@@ -1,6 +1,6 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.5.2：审核修复（manual 多账号推进、设备参数按账号 ID、pending 防错账号）（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
+// 版本 1.5.3：查询失败时输出详细日志（error/status/body）便于排查（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
 // 注意：请求默认 DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）
@@ -273,6 +273,14 @@ async function queryUserInfo(cookie) {
   );
   const totalJson = parseJson(totalRes.data);
   if (totalRes.error || !totalJson || totalJson.code !== 0) {
+    log(
+      'queryUserGoldRichSum 失败: error=' +
+        (totalRes.error || 'null') +
+        ' status=' +
+        (totalRes.response ? totalRes.response.status : '-') +
+        ' body=' +
+        String(totalRes.data || '').slice(0, 300)
+    );
     return { ok: false, error: '获取兑换视频天数失败' };
   }
   const totalDays = (parseInt(totalJson.value, 10) || 0) / 100;
@@ -285,6 +293,14 @@ async function queryUserInfo(cookie) {
   );
   const recordJson = parseJson(recordRes.data);
   if (recordRes.error || !recordJson || recordJson.code !== 0) {
+    log(
+      'queryUserJoinList 失败: error=' +
+        (recordRes.error || 'null') +
+        ' status=' +
+        (recordRes.response ? recordRes.response.status : '-') +
+        ' body=' +
+        String(recordRes.data || '').slice(0, 300)
+    );
     return { ok: false, error: '查询任务完成记录失败' };
   }
   const today = new Date();
