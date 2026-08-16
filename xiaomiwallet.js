@@ -1,6 +1,6 @@
 // xiaomiwallet.js — 小米钱包"看视频得会员"每日任务（Loon 移植版）
 // Build: 2026-08-15
-// 版本 1.5.7：collectCookies 加正则兜底（逗号合并残留段）（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
+// 版本 1.5.8：登录日志加 location/请求Cookie，修复 rawCookie undefined 崩溃（[Rule] PROXY + policy_select 读取），请求策略三级优先级（策略由 Loon 自身 UI 控制：长按节点/策略组触发 generic 时自动跟随）
 // 移植自 https://github.com/gougedeyebaihe-hub/xiaomiwallet-auto（main.py）
 // 触发方式：cron（自动）/ generic（手动：manual 模式提交，或立即执行一次）
 // 注意：请求默认 DIRECT 直连（原项目明确警告服务器/机房 IP 会被风控）
@@ -226,11 +226,14 @@ async function getSessionCookies(passToken, userId) {
     collectCookies(r.response.headers, jar);
     const status = r.response.status;
     const rawCookie = (r.response.headers || {})['set-cookie'] || (r.response.headers || {})['Set-Cookie'];
+    const location = (r.response.headers || {})['location'] || (r.response.headers || {})['Location'];
+    const reqCookieHead = String(headers['Cookie'] || '').slice(0, 60);
     log(
       '登录跳转 ' + hopCount + ': status=' + status +
-      ' set-cookie=' + JSON.stringify(rawCookie).slice(0, 400)
+      ' 请求Cookie=' + reqCookieHead +
+      ' set-cookie=' + String(rawCookie || '').slice(0, 400) +
+      ' location=' + String(location || '')
     );
-    const location = (r.response.headers || {})['location'] || (r.response.headers || {})['Location'];
     if (status >= 300 && status < 400 && location) {
       hopCount++;
       url = resolveUrl(url, location);
